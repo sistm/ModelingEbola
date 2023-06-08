@@ -1,0 +1,52 @@
+[LONGITUDINAL]
+input = {delta_L, delta_S, phi_S, phi_L, delta_Ab, Ti, Ab_Ti,a, alpha_focus, alpha_Q2sol, Test}
+
+Ab_Ti = {use=regressor}
+Ti = {use=regressor}
+Test = {use=regressor}
+
+
+EQUATION:
+odeType = stiff
+
+; Initial Conditions
+; ------------------
+t0 = 0 ; t0 is a reserved keyword (initiation of therapy)
+Ab_0 = Ab_Ti
+
+
+; Rescaled time 
+; -------------
+time_after_peak = t + Ti
+
+
+; Dynamical Model
+; ---------------
+ddt_Ab = phi_S*exp(-delta_S*time_after_peak) + phi_L*exp(-delta_L*time_after_peak) - delta_Ab*Ab
+
+
+; Observation Model
+; -----------------
+if(Test == 1)
+	log_AbValue = log10(Ab) 
+elseif(Test == 2) 
+	log_AbValue = log10(alpha_focus*Ab)
+else
+	log_AbValue = log10(alpha_Q2sol*Ab)
+end
+
+
+DEFINITION:
+y = {distribution = normal, prediction = log_AbValue, sd=a}
+
+;----------------------------------------------
+
+[INDIVIDUAL]
+input = {delta_L_pop, delta_S_pop, phi_S_pop, phi_L_pop, delta_Ab_pop, omega_delta_L, omega_delta_S, omega_phi_S,omega_phi_L, omega_delta_Ab}
+
+DEFINITION:
+delta_L = {distribution = lognormal, prediction = delta_L_pop, sd = omega_delta_L}
+delta_S = {distribution = lognormal, prediction = delta_S_pop, sd = omega_delta_S}
+phi_L = {distribution = lognormal, prediction = phi_L_pop, sd = omega_phi_L}
+phi_S = {distribution = lognormal, prediction = phi_S_pop, sd = omega_phi_S}
+delta_Ab = {distribution = lognormal, prediction = delta_Ab_pop, sd = omega_delta_Ab}

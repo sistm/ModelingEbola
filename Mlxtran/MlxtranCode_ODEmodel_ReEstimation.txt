@@ -1,0 +1,73 @@
+DESCRIPTION: ODE-based mechanistic model describing antibody dynamics from 7 days post-vaccination
+
+Author: Marie Alexandre
+Paper: "Evaluation and prediction of the long-term humoral immune response induced by the two-dose heterologous Ad26.ZEBOV, MVA-BN-Filo vaccine regimen against Ebola"
+Paper section: version of the model used to re-estimate the model, i.e. including adjustment for laboratory effects in the observation model
+
+
+Model description
+-----------------
+ODE compartments:
+- L: Long-lived antibody secreting cells (unobserved)
+- S: Short-lived antibody secreting cells (unobserved)
+- Ab: Binding antibodies [EU/mL]  (observed)
+
+Model parameters:
+- delta_L: decay rate of LL ASCs [1/day]
+- delta_S: decay rate of SL ASCs [1/day]
+- delta_Ab: decay rate of antibodies [1/day]
+- phi_L: influx of LL ASCs [EU/mL/day]
+- phi_S: influx of SL ASCs [EU/mL/day]
+- alpha_focus: proportional scaling factor between Battelle Lab (ref) and Focus Lab  
+- alpha_Q2sol: proportional scaling factor between Battelle Lab (ref) and Q2 solutions Lab
+
+Regressor (provided in the dataset):
+- Ti: individual lag-time = individual time interval between day 64 and the first observation after day 64
+- Ab_Ti: value of the first antibody concentration observation after day 64
+- Test: information related to laboratories in which ELISA assays have been performed
+
+
+
+
+[LONGITUDINAL]
+input = {delta_L, delta_S, phi_S, phi_L, delta_Ab, alpha_focus,alpha_Q2sol, Ti, Ab_Ti,Test}
+
+Ab_Ti = {use=regressor}
+Ti = {use=regressor}
+Test = {use=regressor} ; Battelle = 1 ; Focus = 2 ; Q2 solution = 3
+
+
+
+EQUATION:
+odeType = stiff
+
+
+; Initial Conditions
+; ------------------
+t0 = 0 ; t0 is a reserved keyword (initiation of therapy)
+Ab_0 = Ab_Ti ; First measure of antibody concentration collected from day 64
+
+; Rescaled time
+; -------------
+time_after_peak = t + Ti
+
+
+; Dynamical Model
+; ---------------
+ddt_Ab = phi_S*exp(-delta_S*time_after_peak) + phi_L*exp(-delta_L*time_after_peak) - delta_Ab*Ab
+
+
+; Observation Model
+; -----------------
+if(Test == 1)               
+	log_AbValue = log10(Ab)              ; Battelle Lab
+elseif(Test == 2)            
+	log_AbValue = log10(alpha_focus*Ab)  ; Focus Lab
+else                         
+	log_AbValue = log10(alpha_Q2sol*Ab)  ;  Q2 solutions Lab
+end
+
+
+
+OUTPUT: 
+output = log_AbValue 

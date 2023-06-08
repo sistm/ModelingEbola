@@ -1,0 +1,63 @@
+DESCRIPTION: ODE-based mechanistic model describing antibody dynamics from 7 days post-vaccination
+
+Author: Marie Alexandre
+Paper: "Evaluation and prediction of the long-term humoral immune response induced by the two-dose heterologous Ad26.ZEBOV, MVA-BN-Filo vaccine regimen against Ebola"
+Paper section: version of the model used to evaluate the model quality of prediction (version developed by Pasin et al.)
+
+
+Model description
+-----------------
+ODE compartments:
+- L: Long-lived antibody secreting cells (unobserved)
+- S: Short-lived antibody secreting cells (unobserved)
+- Ab: Binding antibodies [EU/mL]  (observed)
+
+Model parameters:
+- delta_L: decay rate of LL ASCs [1/day]
+- delta_S: decay rate of SL ASCs [1/day]
+- delta_Ab: decay rate of antibodies [1/day]
+- phi_L: influx of LL ASCs [EU/mL/day]
+- phi_S: influx of SL ASCs [EU/mL/day]
+
+Regressor (provided in the dataset):
+- Ti: individual lag-time = individual time interval between day 64 and the first observation after day 64
+- Ab_Ti: value of the first antibody concentration observation after day 64
+
+
+
+
+[LONGITUDINAL]
+input = {delta_L, delta_S, phi_S, phi_L, delta_Ab, Ti, Ab_Ti}
+
+Ab_Ti = {use=regressor}
+Ti = {use=regressor}
+
+
+
+EQUATION:
+odeType = stiff
+
+; Initial Conditions
+; ------------------
+t0 = 0 ; t0 is a reserved keyword (initiation of therapy)
+Ab_0 = Ab_Ti  ; First measure of antibody concentration collected from day 64
+
+
+; Rescaled time 
+; -------------
+time_after_peak = t + Ti
+
+
+; Dynamical Model
+; ---------------
+ddt_Ab = phi_S*exp(-delta_S*time_after_peak) + phi_L*exp(-delta_L*time_after_peak) - delta_Ab*Ab
+
+
+; Observation Model
+; -----------------
+log_AbValue = log10(Ab) ; Data are log10-transformed
+
+
+
+OUTPUT: 
+output = log_AbValue 

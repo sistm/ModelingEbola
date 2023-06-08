@@ -1,0 +1,89 @@
+<DATAFILE>
+
+[FILEINFO]
+file = 'Data_Filename.csv'
+delimiter = semicolon
+header = {ID, T, Real_T, Ab, logAb, Cens, trt, Prime, Boost, Country, trial, Ti_, Ab_Ti_, New_T, Year, Continent, Region}
+
+[CONTENT]
+ID = {use=identifier}
+logAb = {use=observation, name=logAb, type=continuous}
+Cens = {use=censored}
+trial = {use=covariate, type=categorical}
+Ti_ = {use=regressor}
+Ab_Ti_ = {use=regressor}
+New_T = {use=time}
+Continent = {use=covariate, type=categorical}
+Region = {use=covariate, type=categorical}
+
+<MODEL>
+
+[COVARIATE]
+input = Continent
+
+Continent = {type=categorical, categories={Africa, Europe}}
+
+DEFINITION:
+AfricaVsEurope =
+{
+  transform = Continent, 
+  categories = {
+  G_Africa = Africa, 
+  G_Europe = Europe
+  }, 
+  reference = G_Africa
+}
+
+[INDIVIDUAL]
+input = {delta_Ab_pop, omega_delta_Ab, delta_L_pop, delta_S_pop, phi_L_pop, omega_phi_L, phi_S_pop, omega_phi_S, AfricaVsEurope, beta_phi_L_AfricaVsEurope_G_Europe}
+
+AfricaVsEurope = {type=categorical, categories={G_Africa, G_Europe}}
+
+DEFINITION:
+delta_Ab = {distribution=logNormal, typical=delta_Ab_pop, sd=omega_delta_Ab}
+delta_L = {distribution=logNormal, typical=delta_L_pop, no-variability}
+delta_S = {distribution=logNormal, typical=delta_S_pop, no-variability}
+phi_L = {distribution=logNormal, typical=phi_L_pop, covariate=AfricaVsEurope, coefficient={0, beta_phi_L_AfricaVsEurope_G_Europe}, sd=omega_phi_L}
+phi_S = {distribution=logNormal, typical=phi_S_pop, sd=omega_phi_S}
+
+[LONGITUDINAL]
+input = {a}
+
+file = 'MlxtranCode_ODEmodel_validationPrediction.txt'
+
+DEFINITION:
+logAb = {distribution=normal, prediction=log_AbValue, errorModel=constant(a)}
+
+<FIT>
+data = logAb
+model = logAb
+
+<PARAMETER>
+a = {value=0.1, method=FIXED}
+beta_phi_L_AfricaVsEurope_G_Europe = {value=1.449, method=FIXED}
+delta_Ab_pop = {value=0.02888113, method=FIXED}
+delta_L_pop = {value=0.0003165056, method=FIXED}
+delta_S_pop = {value=0.2310491, method=FIXED}
+omega_delta_Ab = {value=0.3, method=FIXED}
+omega_phi_L = {value=0.85, method=FIXED}
+omega_phi_S = {value=0.92, method=FIXED}
+phi_L_pop = {value=16.6, method=FIXED}
+phi_S_pop = {value=2755, method=FIXED}
+
+<MONOLIX>
+
+[TASKS]
+populationParameters()
+individualParameters(method = {conditionalMean, conditionalMode })
+fim(method = StochasticApproximation)
+logLikelihood(method = ImportanceSampling)
+plotResult(method = {indfits, obspred, vpc, npc, residualsscatter, residualsdistribution, parameterdistribution, covariatemodeldiagnosis, randomeffects, covariancemodeldiagnosis, blq, predictiondistribution, saemresults })
+
+[SETTINGS]
+GLOBAL:
+exportpath = 'Project_Name'
+
+INDIVIDUAL:
+miniterations = 200
+nbsimulatedparameters = 500
+
